@@ -1,4 +1,4 @@
 VERTEX,CATEGORY,ATTRIBUTES,STATUS,FUNCTION
-0,asset,green;circle;large,0,mean
-1,component,orange;square;medium,1,
-2,component,blue;triangle;small;critical,1,
+0,asset,large;critical,0,mean
+1,component,medium,1
+2,component,small,2

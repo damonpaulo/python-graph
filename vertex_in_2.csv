@@ -1,0 +1,6 @@
+VERTEX,CATEGORY,ATTRIBUTES,STATUS,FUNCTION
+0,asset,large,0,wmean
+1,asset,medium;critical,0,wmean
+2,component,large,8,
+3,component,small,2,
+4,component,large,5,
