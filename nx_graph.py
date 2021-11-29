@@ -59,27 +59,39 @@ class Node():
 			self.status = self.function(stat_weight)
 		else:
 			self.status = self.function(args)
+
+class Simulator(Node):
+	def __init__(self,edge_file,vertex_file,asset_functions,e_attr=[],verbose=False):
+		(self.G, self.V, self.E) = self.create_graph(edge_file,vertex_file,asset_functions,e_attr,verbose)
 			
-def create_graph(edge_file,vertex_file,asset_functions,edge_attr=[],verbose=False):
-	E = pd.read_csv(edge_file)
-	V = pd.read_csv(vertex_file).set_index('VERTEX')
-	if verbose: print('E:\n',E,'\n')
-	V['ATTRIBUTES'] = V.apply((lambda row: row['ATTRIBUTES'].split(';')), axis=1)
-	V['FUNCTION'] = V['FUNCTION'].fillna(0)
-	Nodes = []
+	def create_graph(self,edge_file,vertex_file,asset_functions,edge_attr,verbose=False):
+		E = pd.read_csv(edge_file)
+		V = pd.read_csv(vertex_file).set_index('VERTEX')
+		if verbose: print('E:\n',E,'\n')
+		# to allow lists within attributes use ';' since ',' is delimiter in file read
+		V['ATTRIBUTES'] = V.apply((lambda row: row['ATTRIBUTES'].split(';')), axis=1)
+		# user can leave function value blank and we will fill with 0's to link to null function
+		V['FUNCTION'] = V['FUNCTION'].fillna(0)
+		Nodes = []
 	
-	for i in range(len(V)):
-		Nodes.append(Node(i,V.iloc[i,0],V.iloc[i,1],V.iloc[i,2],asset_functions[V.iloc[i,3]]))
+		for i in range(len(V)):
+			Nodes.append(Node(i,V.iloc[i,0],V.iloc[i,1],V.iloc[i,2],asset_functions[V.iloc[i,3]]))
 	
-	V['NODE'] = Nodes
-	if verbose: print('V:\n',V,'\n')
+		V['NODE'] = Nodes
+		if verbose: print('V:\n',V,'\n')
 
-	E['FROM'] = E.apply((lambda row: V.iloc[row[0]]['NODE']), axis=1)
-	E['TO'] = E.apply((lambda row: V.iloc[row[1]]['NODE']), axis=1)
+		E['FROM'] = E.apply((lambda row: V.iloc[row[0]]['NODE']), axis=1)
+		E['TO'] = E.apply((lambda row: V.iloc[row[1]]['NODE']), axis=1)
 	
-	G = nx.from_pandas_edgelist(E,source='FROM',target='TO',edge_attr=edge_attr,create_using=nx.DiGraph())
+		# create a NetworkX graph from provided inputes
+		# uses a Directed Graph (nx.DiGraph) -- no options at this time for any other kind of graph
+		G = nx.from_pandas_edgelist(E,source='FROM',target='TO',edge_attr=edge_attr,create_using=nx.DiGraph())
 
-	return (G, V, E)
+		return (G, V, E)
+		
+	# Iterate over all nodes and run update functions
+	def update_nodes(self):
+		return
 
 # example defined in main
 def main():
@@ -119,14 +131,17 @@ def main():
 	# user must define the attributes to be stored on each edge
 	# in this case we have a weight and distance
 	# these columns will be included with any values in the edge input .csv file
-	e_attr = ['WEIGHT','DIST']
-	(G, V, E) = create_graph(edge_file,vertex_file,functions,edge_attr=e_attr,verbose=verbose)
+	edge_attr = ['WEIGHT','DIST']
+	sim = Simulator(edge_file,vertex_file,functions,e_attr=edge_attr,verbose=verbose)
 		
+	(G, V, E) = (sim.G, sim.V, sim.E)
 	# sample way to separate different categories of nodes
 	# in this case nodes are an 'asset' or a 'component'
 	assets = V['NODE'].loc[V['CATEGORY']=='asset']
 	components = V['NODE'].loc[V['CATEGORY']=='component']
-		
+	
+	# sample way to iterate over all assets and updates
+	# this should be an option for a user defined simulator object
 	for a in assets:
 		if verbose: print('Status of',a,'before update:',a.status)
 		if example == 'ex2':
@@ -137,6 +152,9 @@ def main():
 		if verbose: print('Status of',a,'after  update:',a.status,'\n')
 	
 	# sample way to draw graph 
+	# if we want to support graphing there are more full featured libraries than the built-in
+	#   NetworkX draw() functions which are built on matplotlib.pyplot
+	# could implement support to draw in our graph function if it would be a useful feature
 	col = ['deepskyblue' if n.category=='asset' else 'gray' for n in G.nodes()]
 	nx.draw_spectral(G, with_labels=True,font_size=10,node_color=col,node_size=5000,node_shape='o',alpha=0.7)
 	plt.savefig('graph-'+example+'.png')
